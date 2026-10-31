@@ -49,6 +49,15 @@ app.post('/create-event', async (req: Request, res: Response) => {
   });
 });
 
+app.get('/get-events', async (req: Request, res: Response) => {
+  try {
+    const events = await EventCollections.find({}).toArray();
+    res.json(events); 
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch events" });
+  }
+});
+
 app.get('/', (req: Request, res: Response) => {
   res.send('JoinUs Server is running!');
 });
