@@ -1,6 +1,6 @@
 import express, { type Express, type Request, type Response } from 'express';
 import cors from 'cors';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import 'dotenv/config';
 
 const app: Express = express();
@@ -55,6 +55,23 @@ app.get('/get-events', async (req: Request, res: Response) => {
     res.json(events); 
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch events" });
+  }
+});
+
+app.get('/get-events/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    if (!ObjectId.isValid(id as string)) {
+      return res.status(400).json({ error: "Invalid Event ID format" });
+    }
+    const event = await EventCollections.findOne({ _id: new ObjectId(id as string) });
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    res.status(200).json(event); 
+  } catch (error) {
+    console.error("Error fetching event:", error);
+    res.status(500).json({ error: "Failed to fetch event" });
   }
 });
 
