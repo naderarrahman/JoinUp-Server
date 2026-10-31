@@ -29,6 +29,7 @@ if (!mongoClient) {
 
 const db = mongoClient.db('JoinUp');
 const EventCollections = db.collection('Events');
+const JoinEventCollections = db.collection('JoinedEvents');
 
 app.post('/create-event', async (req: Request, res: Response) => {
   console.log(" Data received:", req.body);
@@ -40,6 +41,25 @@ app.post('/create-event', async (req: Request, res: Response) => {
   }
 
   const eventData = await EventCollections.insertOne(result);
+  console.log("Data inserted to MongoDB:", eventData);
+
+  res.status(201).json({ 
+    success: true, 
+    message: "Event created", 
+    data: result 
+  });
+});
+
+app.post('/join-event', async (req: Request, res: Response) => {
+  console.log(" Data received:", req.body);
+
+  const result = req.body;
+
+  if (!result || Object.keys(result).length === 0) {
+    return res.status(400).json({ error: "No data received" });
+  }
+
+  const eventData = await JoinEventCollections.insertOne(result);
   console.log("Data inserted to MongoDB:", eventData);
 
   res.status(201).json({ 
@@ -74,6 +94,11 @@ app.get('/get-events/:id', async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch event" });
   }
 });
+
+
+
+
+
 
 app.get('/', (req: Request, res: Response) => {
   res.send('JoinUs Server is running!');
