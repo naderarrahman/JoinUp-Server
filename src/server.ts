@@ -110,6 +110,47 @@ app.get('/joined-events/:email', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/my-events/:email', async (req: Request, res: Response) => {
+  const { email } = req.params;
+  try {
+    const myEvents = await EventCollections
+      .find({ organizerEmail: email })
+      .sort({ createdAt: -1 }) 
+      .toArray();
+      
+    res.status(200).json(myEvents);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch your events" });
+  }
+});
+
+app.delete('/delete-event/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { userEmail } = req.body; 
+
+  try {
+    if (!ObjectId.isValid(id as string)) {
+      return res.status(400).json({ error: "Invalid Event ID" });
+    }
+
+    const event = await EventCollections.findOne({ _id: new ObjectId(id as string) });
+    
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    if (event.organizerEmail !== userEmail) {
+      return res.status(403).json({ error: "Unauthorized to delete this event" });
+    }
+
+    await EventCollections.deleteOne({ _id: new ObjectId(id as string) });
+
+    res.status(200).json({ success: true, message: "Event deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete event" });
+  }
+});
+
 app.delete('/leave-event/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -154,6 +195,46 @@ app.post('/check-join-status', async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error checking join status:", error);
     res.status(500).json({ error: "Failed to check status" });
+  }
+});
+
+app.patch('/update-event/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { userEmail, ...updatedData } = req.body; 
+
+  try {
+    if (!ObjectId.isValid(id as string)) {
+      return res.status(400).json({ error: "Invalid Event ID" });
+    }
+
+    const event = await EventCollections.findOne({ _id: new ObjectId(id as string) });
+
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    if (event.organizerEmail !== userEmail) {
+      return res.status(403).json({ error: "Unauthorized: You can only edit your own events" });
+    }
+
+    const result = await EventCollections.updateOne(
+      { _id: new ObjectId(id as string) },
+      { $set: updatedData } 
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(200).json({ success: true, message: "No changes made" });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Event updated successfully",
+      data: { ...event, ...updatedData } 
+    });
+
+  } catch (error) {
+    console.error("Update Error:", error);
+    res.status(500).json({ error: "Failed to update event" });
   }
 });
 
