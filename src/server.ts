@@ -95,8 +95,67 @@ app.get('/get-events/:id', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/joined-events/:email', async (req: Request, res: Response) => {
+  const { email } = req.params;
+  try {
+    const joinedEvents = await JoinEventCollections
+      .find({ userEmail: email })
+      .sort({ eventDate: 1 }) 
+      .toArray();
 
+    res.status(200).json(joinedEvents);
+  } catch (error) {
+    console.error("Error fetching joined events:", error);
+    res.status(500).json({ error: "Failed to fetch joined events" });
+  }
+});
 
+app.delete('/leave-event/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    if (!ObjectId.isValid(id as string)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+    const result = await JoinEventCollections.deleteOne({ _id: new ObjectId(id as string) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "Join record not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Successfully left the event" });
+  } catch (error) {
+    console.error("Error leaving event:", error);
+    res.status(500).json({ error: "Failed to leave event" });
+  }
+});
+
+app.post('/check-join-status', async (req: Request, res: Response) => {
+  const { eventId, userEmail } = req.body;
+
+  if (!eventId || !userEmail) {
+    return res.status(400).json({ error: "Missing eventId or userEmail" });
+  }
+
+  try {
+    const existingRecord = await JoinEventCollections.findOne({ 
+      eventId: eventId, 
+      userEmail: userEmail 
+    });
+
+    if (existingRecord) {
+      return res.status(200).json({ 
+        isJoined: true, 
+        recordId: existingRecord._id 
+      });
+    }
+
+    res.status(200).json({ isJoined: false });
+  } catch (error) {
+    console.error("Error checking join status:", error);
+    res.status(500).json({ error: "Failed to check status" });
+  }
+});
 
 
 
