@@ -12,6 +12,35 @@ app.use(express.json());
 
 const client = new MongoClient(`mongodb://${process.env.MONGODB_UN}:${process.env.MONGODB_PASS}@ac-9bgt4br-shard-00-00.tz6lpzg.mongodb.net:27017,ac-9bgt4br-shard-00-01.tz6lpzg.mongodb.net:27017,ac-9bgt4br-shard-00-02.tz6lpzg.mongodb.net:27017/?ssl=true&replicaSet=atlas-njb57t-shard-0&authSource=admin`);
 
+let EventCollections: any;
+let JoinEventCollections: any;
+
+export async function connectToMongoDB() {
+  try {
+    await client.connect();
+    console.log("You successfully connected to MongoDB!");
+    return client;
+  } catch (err) {
+    console.dir(err);
+  }
+}
+
+const initDB = async () => {
+  if (EventCollections) return;
+  const mongoClient = await connectToMongoDB();
+  if (!mongoClient) {
+    throw new Error("MongoDB connection failed");
+  }
+  const db = mongoClient.db('JoinUp');
+  EventCollections = db.collection('Events');
+  JoinEventCollections = db.collection('JoinedEvents');
+};
+
+app.use(async (req, res, next) => {
+  await initDB();
+  next();
+});
+
 const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
@@ -41,26 +70,6 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({ msg: "Unauthorized: Token verification failed" });
   }
 };
-
-export async function connectToMongoDB() {
-  try {
-    await client.connect();
-    console.log("You successfully connected to MongoDB!");
-    return client;
-  } catch (err) {
-    console.dir(err);
-  }
-}
-
-const mongoClient = await connectToMongoDB();
-
-if (!mongoClient) {
-  throw new Error("MongoDB connection failed");
-}
-
-const db = mongoClient.db('JoinUp');
-const EventCollections = db.collection('Events');
-const JoinEventCollections = db.collection('JoinedEvents');
 
 // Private Routes
 
@@ -311,8 +320,10 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 if (!process.env.VERCEL) {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+  initDB().then(() => {
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
   });
 }
 
