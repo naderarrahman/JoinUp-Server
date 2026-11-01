@@ -310,6 +310,8 @@ app.get('/', (req: Request, res: Response) => {
   res.send('JoinUs Server is running!');
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
