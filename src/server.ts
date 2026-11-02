@@ -259,7 +259,15 @@ app.patch('/update-event/:id', verifyToken, async (req: Request, res: Response) 
 
 app.get('/get-events', async (req: Request, res: Response) => {
   try {
-    const events = await EventCollections.find({}).toArray();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayString = today.toISOString().split("T")[0]; 
+
+    const events = await EventCollections
+      .find({ eventDate: { $gte: todayString } }) 
+      .sort({ eventDate: 1 }) 
+      .toArray();
+
     res.json(events); 
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch events" });
