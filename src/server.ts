@@ -315,6 +315,25 @@ app.get('/past-events', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/next-event', async (req: Request, res: Response) => {
+  try {
+    const today = new Date().toISOString();
+    const nextEvent = await EventCollections
+      .find({ eventDate: { $gte: today } })
+      .sort({ eventDate: 1 })
+      .limit(1)
+      .toArray();
+
+    if (nextEvent.length === 0) {
+      return res.status(200).json(null);
+    }
+
+    res.status(200).json(nextEvent[0]);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch next event" });
+  }
+});
+
 app.get('/', (req: Request, res: Response) => {
   res.send('JoinUs Server is running!');
 });
